@@ -1,0 +1,75 @@
+\documentclass[11pt]{article}
+\usepackage{fullpage}
+\usepackage[utf8]{inputenc}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{cite}
+\usepackage{xcolor}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\newtheorem{claim}{Claim}
+\newtheorem{corollary}{Corollary}
+\newtheorem{observation}{Observation}
+\newtheorem{remark}{Remark}
+\newtheorem{oq}{Open Question}
+
+
+\begin{document}
+\title{Final Project - Distributed Graph Algorithms - Spring 2022\\
+On the paper: Time-Optimal Construction of Overlay Networks, 
+by Thorsten Götte, Kristian Hinnenthal, Christian Scheideler, and Julian Werthmann
+}
+\author{Lior Atias\footnote{lioratias@campus.technion.ac.il, 316198894} \and Raz Ashkenazi\footnote{razas@campus.technion.ac.il, 311177034}
+}
+\date{01.08.2022}
+	\maketitle
+\section{Summary}
+\subsection{Introduction}
+In this project, we talk about construction of overlay networks in optimal time. An overlay network is a network that is built on top of another network. For example, peer-to-peer networks which operate over the internet are overlay networks. We can think of the ids of nodes in the networks as IP addresses. The difficulty in building the overlay networks is that it might expand the diameter or the degrees of some nodes which can impair performance of the networks. So basically, we want to build the overlay networks quickly with low diameter and low degrees for each node.
+
+\subsection{The Model and Assumptions}
+The communication here works in synchronous rounds as learnt in class. The model that is used here is the $NCC_{0}$ model which is very similar to the CONGEST model as we learned in class and talks about networks, in which each node initially only knows the ids of its neighbours, but now new connections can be established by sending node ids. They assume each node can send a message in size of $O(\log{n})$ bits, and can send and receive at most $O(\log{n})$ messages in each round. The $n$ nodes here are the participants of all networks. Each node has a unique id with size of $O(\log{n})$. When node $u$ knows the id of node $v$, it means that there is a direct edge from $u$ to $v$ and therefore node $u$ can send messages to node $v$. A node's degree is the sum of his incoming edges with his outgoing edges, and the graph's degree is the maximum degree of any node in the graph, denoted by $d$ in this paper. They refer a weakly-connected graph as a graph, either as directed or undirected, that has at least one path for each pair of nodes. When they refer to a graph as undirected, they assume it can be made bidirected by letting each node introduce itself to all of its neighbors, and it can be made easily in their algorithms.
+
+\subsection{Illustration}
+A simple example of overlay networks in directed distributed graphs: for a given path $P=u\rightarrow v \rightarrow w$, we can construct an overlay network by adding a new edge $(u,w)$. This can be done if node $v$ sends the id of node $w$ to node $u$. From now, node $u$ can send direct messages to node $w$ and might save time in future rounds. In case of clique, every node knows the ids of all nodes in the graph. However, in a graph that isn't a clique, every node cannot send all the ids to all nodes for building a clique because of the limits in our model as mentioned in section 1.2.
+
+\subsection{The Complexity Desired}
+Without limiting the message size, the worst case we have is a line of nodes, and the first node needs to know about the last node. There is an algorithm based on pointer jumping which takes $O(\log{n})$ rounds for the first node to know about the last node in the line. According to this paper, the best time achieved for all nodes to know about each other was $O(\log^{\frac{3}{2}}n)$ rounds, but now in this paper it was found out that the best time is $O(\log{n})$ rounds w.h.p.
+
+\subsection{The Algorithm}
+\subsubsection{The General Idea}
+The general idea of the new purposed algorithm is to use constant length random walks, denoted by $l$ in this paper: for any directed graph as input, we turn the graph into a specific weakly-connected graph, denoted as benign graph in this paper, and then each node $u$ spreads unique messages that called tokens. The tokens contain the id of $u$, and each of them walk along the graph randomly and independently. After $l$ rounds, every token $t$ gets to an endpoint node $v_{t}$, and for some of these nodes that received the tokens we construct new edges between them and node $u$, i.e. with both directions. We repeat this process for $L=O(\log{n})$ iterations, until we get an overlay network as a tree with diameter in size $O(\log{n})$ and constant degree $\Delta$ for each node.
+
+\subsubsection{The Inputs}
+$\forall{i}\in[L]$, we denote $G_{i}=(V,E_{i})$ as the current communication graph which created after $i$ iterations of random walks in the algorithm. Thus, we denote $G_{0}$ as the input connected graph with degree $d$. Furthermore, the algorithm also get the parameters $l$, $\Delta$ and $L$ as mentioned before as inputs. The last input parameter is $\Lambda$ in size $O(\log{n})$, and is particularly used to make the benign graph. All these inputs are known to all nodes in $V$.
+
+\subsubsection{Phase I: Make the Benign Graph}
+If we want runtime complexity of $O(\log{n})$ rounds w.h.p, then the algorithm must work only with weakly-connected graphs and constant degree for each node, because of the methodology of random walks (which will be explained in the next section). Thus, for any sort of directed graph $G_{0}=(V,E_{0})$ as input, we want to make it as weak as possible, and in the same time we want to keep it connected, which is guaranteed for been connected if we keep the degree $\Delta$ in size of $\Omega(\log{n})$. As revealed in this paper, there are 3 properties that were chosen carefully and are all mandatory to make the graph as such, and this sort of graph denoted as benign graph:
+\begin{enumerate}
+  \item Every node in $V$ has exactly $\Delta$ ingoing and $\Delta$ outgoing edges (including self-loops).
+  \item Every node in $V$ has at least $\frac{\Delta}{2}$ self-loops.
+  \item Every cut $c(U,\overline{U})$ s.t. $U\subset V$ has at least $\Lambda$ edges.
+\end{enumerate}
+Now, to make the input graph into benign graph, if we assume that $2d\Lambda \leq \Delta = O(\log{n})$, and we can assume that because $d$ is constant, then the input graph can be turned benign in 2 steps:
+\begin{enumerate}
+  \item All edges are copied $\Lambda$ times to obtain the desired minimum cut (property 3), and then we get that each node has at most $d\Lambda$ edges to other nodes.
+  \item Each node adds self-loops until its degree gets to $\Delta$. By the time it adds all the self loops needed, it will have $\frac{\Delta}{2}$ self-loops because of the assumption 
+  $2d\Lambda \leq \Delta \Rightarrow d\Lambda \leq \frac{\Delta}{2}$ .
+\end{enumerate}
+
+\subsubsection{Phase II: Use the Random Walks}
+
+
+%\bibliographystyle{alpha}
+%\bibliography{bib-filename}
+
+
+\end{document} 
